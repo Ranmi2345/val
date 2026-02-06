@@ -1,0 +1,1226 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#070611" />
+  <title>For Divine</title>
+  <style>
+    :root{
+      --bg0:#070611;
+      --bg1:#0b0920;
+      --card:rgba(255,255,255,.08);
+      --card2:rgba(255,255,255,.12);
+      --stroke:rgba(255,255,255,.14);
+      --text:rgba(255,255,255,.92);
+      --muted:rgba(255,255,255,.68);
+      --muted2:rgba(255,255,255,.52);
+      --hot:#ff4d7a;
+      --hot2:#ff2f63;
+      --warm:#ffd3d8;
+      --shadow:0 20px 70px rgba(0,0,0,.55);
+      --shadow2:0 10px 30px rgba(0,0,0,.40);
+      --r:22px;
+      --ease: cubic-bezier(.2,.9,.2,1);
+      --spring: cubic-bezier(.15,1.05,.15,1);
+      --safeT: env(safe-area-inset-top, 0px);
+      --safeR: env(safe-area-inset-right, 0px);
+      --safeB: env(safe-area-inset-bottom, 0px);
+      --safeL: env(safe-area-inset-left, 0px);
+    }
+
+    *{ box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, system-ui, sans-serif;
+      color:var(--text);
+      background: radial-gradient(1200px 900px at 30% 10%, rgba(255,77,122,.10), transparent 60%),
+                  radial-gradient(1000px 800px at 70% 30%, rgba(255,142,170,.08), transparent 55%),
+                  radial-gradient(900px 900px at 50% 85%, rgba(255,77,122,.06), transparent 60%),
+                  linear-gradient(180deg, var(--bg1), var(--bg0));
+      overflow:hidden;
+      touch-action: manipulation;
+    }
+
+    /* App container */
+    .app{
+      position:fixed;
+      inset:0;
+      overflow:hidden;
+      padding: max(16px, calc(var(--safeT) + 16px))
+               max(16px, calc(var(--safeR) + 16px))
+               max(16px, calc(var(--safeB) + 16px))
+               max(16px, calc(var(--safeL) + 16px));
+      display:grid;
+      place-items:center;
+      isolation:isolate;
+    }
+
+    /* Background canvas */
+    #stars{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      z-index:0;
+    }
+
+    /* Ambient blobs */
+    .blob{
+      position:absolute;
+      width: 44vmax;
+      height: 44vmax;
+      border-radius: 50%;
+      filter: blur(40px);
+      opacity: .35;
+      transform: translate3d(0,0,0);
+      z-index:0;
+      pointer-events:none;
+      background:
+        radial-gradient(circle at 30% 30%, rgba(255,77,122,.70), transparent 60%),
+        radial-gradient(circle at 70% 55%, rgba(255,190,205,.45), transparent 62%),
+        radial-gradient(circle at 55% 80%, rgba(255,77,122,.40), transparent 58%);
+      mix-blend-mode: screen;
+      will-change: transform;
+    }
+    .blob.b1{ left:-18vmax; top:-14vmax; animation: blobFloat1 12s var(--ease) infinite; }
+    .blob.b2{ right:-20vmax; bottom:-18vmax; animation: blobFloat2 14s var(--ease) infinite; opacity:.28; }
+    .blob.b3{ left: 12vmax; bottom:-22vmax; animation: blobFloat3 16s var(--ease) infinite; opacity:.22; }
+
+    @keyframes blobFloat1{
+      0%,100%{ transform: translate3d(0,0,0) scale(1); }
+      40%{ transform: translate3d(6vmax, 3vmax, 0) scale(1.03); }
+      70%{ transform: translate3d(2vmax, 7vmax, 0) scale(.98); }
+    }
+    @keyframes blobFloat2{
+      0%,100%{ transform: translate3d(0,0,0) scale(1); }
+      35%{ transform: translate3d(-7vmax, -4vmax, 0) scale(1.05); }
+      75%{ transform: translate3d(-3vmax, -8vmax, 0) scale(.97); }
+    }
+    @keyframes blobFloat3{
+      0%,100%{ transform: translate3d(0,0,0) scale(1); }
+      45%{ transform: translate3d(-5vmax, -3vmax, 0) scale(1.04); }
+      80%{ transform: translate3d(4vmax, -8vmax, 0) scale(.98); }
+    }
+
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce){
+      .blob{ animation:none !important; }
+      .floaty{ animation:none !important; }
+      .screen{ transition-duration: 0ms !important; }
+      .flipWrap{ transition-duration: 0ms !important; }
+      .btn{ transition-duration: 0ms !important; }
+      .confettiHeart{ animation:none !important; }
+    }
+
+    /* Screens */
+    .screens{
+      position:relative;
+      width: min(560px, 100%);
+      z-index:2;
+      perspective: 1200px;
+    }
+
+    .screen{
+      position:absolute;
+      inset:0;
+      opacity:0;
+      transform: translate3d(0, 14px, 0) scale(.985);
+      transition: opacity 420ms var(--ease), transform 520ms var(--ease);
+      pointer-events:none;
+    }
+    .screen.active{
+      opacity:1;
+      transform: translate3d(0,0,0) scale(1);
+      pointer-events:auto;
+    }
+    .screen.exitLeft{ opacity:0; transform: translate3d(-18px, 0, 0) scale(.985); }
+    .screen.enterRight{ opacity:0; transform: translate3d(18px, 0, 0) scale(.985); }
+
+    /* Card */
+    .card{
+      position:relative;
+      width:100%;
+      border-radius: var(--r);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.06));
+      border: 1px solid var(--stroke);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      overflow:hidden;
+      transform-style: preserve-3d;
+    }
+    .card::before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      background:
+        radial-gradient(700px 260px at 20% 10%, rgba(255,77,122,.20), transparent 55%),
+        radial-gradient(500px 220px at 85% 35%, rgba(255,190,205,.14), transparent 58%),
+        radial-gradient(540px 240px at 50% 100%, rgba(255,77,122,.14), transparent 60%);
+      pointer-events:none;
+      opacity:.95;
+      filter: blur(.2px);
+    }
+    .cardInner{
+      position:relative;
+      padding: 26px 22px 22px;
+      display:flex;
+      flex-direction:column;
+      gap: 14px;
+      min-height: 360px;
+    }
+    @media (max-width:420px){
+      .cardInner{ padding:22px 18px 18px; min-height: 350px; }
+    }
+
+    .floaty{
+      animation: floaty 4.2s ease-in-out infinite;
+      will-change: transform;
+    }
+    @keyframes floaty{
+      0%,100%{ transform: translate3d(0,0,0); }
+      50%{ transform: translate3d(0,-6px,0); }
+    }
+
+    .title{
+      font-size: clamp(22px, 5.2vw, 34px);
+      letter-spacing:.2px;
+      line-height:1.12;
+      margin: 0;
+      text-align:center;
+      text-shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+    .sub{
+      margin:0;
+      text-align:center;
+      color: var(--muted);
+      font-size: 14px;
+      letter-spacing: .15px;
+    }
+
+    .controls{
+      margin-top: 10px;
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      position:relative;
+      padding: 10px 0 0;
+    }
+
+    .btn{
+      position:relative;
+      min-height: 48px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.16);
+      background: rgba(255,255,255,.08);
+      color: var(--text);
+      font-weight: 700;
+      letter-spacing: .2px;
+      cursor:pointer;
+      user-select:none;
+      touch-action: manipulation;
+      outline:none;
+      box-shadow: 0 10px 24px rgba(0,0,0,.35);
+      transition: transform 140ms var(--spring), box-shadow 220ms var(--ease), background 220ms var(--ease), border-color 220ms var(--ease);
+      overflow:hidden;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+    }
+    .btn:active{ transform: translate3d(0,1px,0) scale(.985); }
+    .btn:focus-visible{
+      box-shadow: 0 0 0 3px rgba(255,77,122,.25), 0 14px 28px rgba(0,0,0,.45);
+      border-color: rgba(255,77,122,.45);
+    }
+
+    .btnYes{
+      background: linear-gradient(180deg, rgba(255,77,122,.95), rgba(255,47,99,.86));
+      border-color: rgba(255,255,255,.22);
+      box-shadow: 0 18px 40px rgba(255,47,99,.18), 0 14px 28px rgba(0,0,0,.48);
+    }
+    .btnYes::before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      background:
+        radial-gradient(260px 120px at 30% 15%, rgba(255,255,255,.35), transparent 60%),
+        radial-gradient(320px 140px at 70% 35%, rgba(255,255,255,.18), transparent 65%);
+      opacity:.75;
+      pointer-events:none;
+      transform: translateZ(0);
+    }
+    .btnYes:hover{ background: linear-gradient(180deg, rgba(255,92,136,.96), rgba(255,47,99,.90)); }
+
+    .btnNo{
+      background: rgba(255,255,255,.07);
+    }
+
+    .attempts{
+      margin-top: 8px;
+      text-align:center;
+      color: var(--muted2);
+      font-size: 13px;
+      letter-spacing:.15px;
+    }
+
+    /* No button teleporter layer */
+    .teleportStage{
+      position:relative;
+      width:100%;
+      height: 92px;
+      margin-top: 4px;
+    }
+    .teleportStage .btnNo{
+      position:absolute;
+      left: 0;
+      top: 0;
+      width: calc(50% - 6px);
+      will-change: transform;
+    }
+
+    /* Card shake */
+    .shake{ animation: shake 360ms var(--ease) both; }
+    @keyframes shake{
+      0%{ transform: translate3d(0,0,0); }
+      20%{ transform: translate3d(-2px,0,0) rotate(-.35deg); }
+      45%{ transform: translate3d(2px,0,0) rotate(.35deg); }
+      70%{ transform: translate3d(-1px,0,0) rotate(-.2deg); }
+      100%{ transform: translate3d(0,0,0); }
+    }
+
+    /* Ripple pop (no audio) */
+    .ripple{
+      position:absolute;
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      left: var(--x);
+      top: var(--y);
+      transform: translate(-50%,-50%) scale(.4);
+      background: radial-gradient(circle, rgba(255,255,255,.55), rgba(255,77,122,.35) 35%, transparent 70%);
+      filter: blur(.1px);
+      pointer-events:none;
+      animation: ripple 420ms var(--ease) forwards;
+    }
+    @keyframes ripple{
+      to{ transform: translate(-50%,-50%) scale(8); opacity:0; }
+    }
+
+    /* Wobble for the NO */
+    .wobble{ animation: wobble 420ms var(--spring) both; }
+    @keyframes wobble{
+      0%{ transform: translate3d(var(--tx,0px), var(--ty,0px), 0) rotate(0deg) scale(1); }
+      40%{ transform: translate3d(var(--tx,0px), var(--ty,0px), 0) rotate(-2.6deg) scale(1.02); }
+      70%{ transform: translate3d(var(--tx,0px), var(--ty,0px), 0) rotate(1.6deg) scale(.99); }
+      100%{ transform: translate3d(var(--tx,0px), var(--ty,0px), 0) rotate(0deg) scale(1); }
+    }
+
+    /* Flip transition wrapper */
+    .flipWrap{
+      position:relative;
+      transform-style: preserve-3d;
+      transition: transform 820ms var(--spring), filter 820ms var(--ease);
+      will-change: transform;
+    }
+    .flipWrap.flipping{
+      transform: rotateY(180deg);
+      filter: saturate(1.06);
+    }
+    .face{
+      backface-visibility:hidden;
+      -webkit-backface-visibility:hidden;
+    }
+    .backFace{
+      position:absolute;
+      inset:0;
+      transform: rotateY(180deg);
+    }
+
+    /* Celebration */
+    .celebrate{
+      display:grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 14px;
+      min-height: 380px;
+      align-items:center;
+      justify-items:center;
+      text-align:center;
+    }
+
+    .heartBuddyWrap{
+      width: 190px;
+      height: 170px;
+      position:relative;
+      display:grid;
+      place-items:center;
+      margin-top: 6px;
+    }
+
+    .heartBuddy{
+      width: 120px;
+      height: 110px;
+      position:relative;
+      transform: translate3d(0,0,0) scale(0.8);
+      filter: drop-shadow(0 18px 28px rgba(0,0,0,.38));
+      animation: buddyIn 780ms var(--spring) both;
+      will-change: transform;
+    }
+
+    /* Heart body using two circles + square */
+    .heartBuddy::before,
+    .heartBuddy::after{
+      content:"";
+      position:absolute;
+      width: 64px;
+      height: 64px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 28%, rgba(255,255,255,.35), transparent 55%),
+                  linear-gradient(180deg, rgba(255,92,136,.98), rgba(255,47,99,.86));
+      top: 8px;
+    }
+    .heartBuddy::before{ left: 14px; }
+    .heartBuddy::after{ right: 14px; }
+
+    .heartCore{
+      position:absolute;
+      inset: 34px 18px 10px 18px;
+      background: linear-gradient(180deg, rgba(255,92,136,.98), rgba(255,47,99,.86));
+      border-radius: 18px;
+      transform: rotate(45deg);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.16);
+    }
+    .heartShine{
+      position:absolute;
+      width: 70px;
+      height: 34px;
+      left: 18px;
+      top: 16px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 25% 45%, rgba(255,255,255,.55), rgba(255,255,255,.14) 55%, transparent 72%);
+      transform: rotate(-18deg);
+      opacity:.85;
+      pointer-events:none;
+      mix-blend-mode: screen;
+    }
+
+    /* Face */
+    .faceDots{
+      position:absolute;
+      left: 0;
+      right: 0;
+      top: 44px;
+      display:flex;
+      justify-content:center;
+      gap: 26px;
+      transform: translateZ(1px);
+    }
+    .eye{
+      width: 16px;
+      height: 12px;
+      border-radius: 999px;
+      background: rgba(15,8,18,.70);
+      box-shadow: inset 0 2px 0 rgba(255,255,255,.16);
+      position:relative;
+      overflow:hidden;
+    }
+    .eye::after{
+      content:"";
+      position:absolute;
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      left: 5px;
+      top: 3px;
+      background: rgba(255,255,255,.55);
+      opacity:.5;
+      transform: translateZ(0);
+    }
+    .mouth{
+      position:absolute;
+      width: 26px;
+      height: 18px;
+      left: 50%;
+      top: 64px;
+      transform: translateX(-50%);
+      border-bottom: 3px solid rgba(15,8,18,.55);
+      border-radius: 0 0 16px 16px;
+      opacity:.85;
+    }
+    .cheeks{
+      position:absolute;
+      left:0;
+      right:0;
+      top: 60px;
+      display:flex;
+      justify-content:center;
+      gap: 56px;
+      opacity:.9;
+      pointer-events:none;
+    }
+    .cheek{
+      width: 16px;
+      height: 10px;
+      border-radius: 999px;
+      background: radial-gradient(circle, rgba(255,255,255,.28), rgba(255,255,255,.0) 70%);
+      mix-blend-mode: screen;
+    }
+
+    @keyframes buddyIn{
+      0%{ transform: translate3d(0,14px,0) scale(.6); }
+      45%{ transform: translate3d(0,-6px,0) scale(1.08); }
+      70%{ transform: translate3d(0,4px,0) scale(.98); }
+      100%{ transform: translate3d(0,0,0) scale(1); }
+    }
+
+    .buddyBounce{
+      animation: buddyBounce 1.2s var(--spring) infinite;
+      animation-delay: 900ms;
+    }
+    @keyframes buddyBounce{
+      0%,100%{ transform: translate3d(0,0,0) scale(1); }
+      45%{ transform: translate3d(0,-6px,0) scale(1.02); }
+      70%{ transform: translate3d(0,3px,0) scale(.99); }
+    }
+
+    .wink .eye.right{
+      animation: wink 260ms var(--ease) both;
+    }
+    @keyframes wink{
+      0%{ height:12px; }
+      40%{ height:2px; }
+      100%{ height:12px; }
+    }
+
+    .loveLine{
+      margin: 0;
+      font-size: 22px;
+      letter-spacing: .2px;
+      color: rgba(255,255,255,.92);
+      text-shadow: 0 12px 30px rgba(0,0,0,.40);
+    }
+
+    .ctaRow{
+      width:100%;
+      display:flex;
+      justify-content:center;
+      padding-bottom: 6px;
+    }
+
+    /* Confetti hearts container */
+    .confetti{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      overflow:hidden;
+      border-radius: var(--r);
+    }
+
+    .confettiHeart{
+      position:absolute;
+      width: 12px;
+      height: 12px;
+      transform: translate3d(0,0,0) rotate(0deg) scale(1);
+      opacity: .95;
+      filter: drop-shadow(0 8px 14px rgba(0,0,0,.25));
+      will-change: transform, opacity;
+    }
+    .confettiHeart::before,
+    .confettiHeart::after{
+      content:"";
+      position:absolute;
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, rgba(255,255,255,.25), rgba(255,255,255,0)) ,
+                  linear-gradient(180deg, rgba(255,92,136,.98), rgba(255,47,99,.86));
+      top: 2px;
+    }
+    .confettiHeart::before{ left: 1px; }
+    .confettiHeart::after{ right: 1px; }
+    .confettiHeart span{
+      position:absolute;
+      inset: 5px 2px 1px 2px;
+      background: linear-gradient(180deg, rgba(255,92,136,.98), rgba(255,47,99,.86));
+      border-radius: 3px;
+      transform: rotate(45deg);
+    }
+
+    /* Love letter screen */
+    .letter{
+      display:flex;
+      flex-direction:column;
+      gap: 12px;
+      min-height: 420px;
+    }
+
+    .letterHeader{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+    }
+
+    .letterTitle{
+      margin: 0;
+      font-size: 20px;
+      letter-spacing: .2px;
+      color: rgba(255,255,255,.92);
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.07);
+      border: 1px solid rgba(255,255,255,.14);
+      color: rgba(255,255,255,.75);
+      font-size: 12px;
+      user-select:none;
+    }
+
+    .scrollArea{
+      position:relative;
+      flex:1;
+      overflow:auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 14px 14px 18px;
+      border-radius: 18px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.11), rgba(255,255,255,.06));
+      border: 1px solid rgba(255,255,255,.14);
+      box-shadow: var(--shadow2);
+    }
+
+    .paper{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      border-radius: 18px;
+      background:
+        radial-gradient(900px 260px at 20% 10%, rgba(255,77,122,.10), transparent 60%),
+        radial-gradient(800px 260px at 80% 45%, rgba(255,190,205,.08), transparent 62%),
+        linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,0));
+      mix-blend-mode: screen;
+      opacity:.9;
+    }
+
+    .scrollArea::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      border-radius: 18px;
+      background:
+        radial-gradient(circle at 15% 25%, rgba(255,255,255,.10), transparent 55%),
+        radial-gradient(circle at 80% 70%, rgba(255,255,255,.06), transparent 55%),
+        repeating-linear-gradient(135deg, rgba(255,255,255,.02) 0px, rgba(255,255,255,.02) 2px, transparent 2px, transparent 10px);
+      opacity:.55;
+      pointer-events:none;
+    }
+
+    .letterBody{
+      position:relative;
+      margin:0;
+      color: rgba(255,255,255,.86);
+      line-height: 1.68;
+      font-size: 15.5px;
+      max-width: 44ch;
+    }
+    .sig{
+      margin-top: 14px;
+      color: rgba(255,255,255,.80);
+      font-weight: 700;
+      letter-spacing: .2px;
+    }
+
+    /* Footer hint */
+    .hint{
+      margin-top: -4px;
+      text-align:center;
+      font-size: 12px;
+      color: rgba(255,255,255,.56);
+    }
+
+    /* Small top brand */
+    .brand{
+      position:absolute;
+      top: max(14px, calc(var(--safeT) + 10px));
+      left: max(16px, calc(var(--safeL) + 12px));
+      right: max(16px, calc(var(--safeR) + 12px));
+      z-index:2;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      pointer-events:none;
+    }
+    .brand .mark{
+      pointer-events:none;
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      opacity:.9;
+      color: rgba(255,255,255,.82);
+      font-size: 12px;
+      letter-spacing: .14px;
+      user-select:none;
+    }
+    .dot{
+      width: 8px; height: 8px; border-radius: 999px;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.7), rgba(255,77,122,.7));
+      box-shadow: 0 0 16px rgba(255,77,122,.32);
+    }
+
+    /* Hide selection */
+    .noselect{ user-select:none; }
+
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <canvas id="stars" aria-hidden="true"></canvas>
+    <div class="blob b1" aria-hidden="true"></div>
+    <div class="blob b2" aria-hidden="true"></div>
+    <div class="blob b3" aria-hidden="true"></div>
+
+    <div class="brand" aria-hidden="true">
+      <div class="mark"><span class="dot"></span><span>offline · made for Divine</span></div>
+      <div class="mark" style="opacity:.7">❤</div>
+    </div>
+
+    <div class="screens" role="application" aria-label="Valentine gift">
+
+      <!-- Screen 1: Ask -->
+      <section class="screen active" id="screen-ask" aria-label="Ask">
+        <div class="flipWrap" id="flipWrap">
+          <div class="card floaty face" id="askCard">
+            <div class="confetti" id="askFx" aria-hidden="true"></div>
+            <div class="cardInner">
+              <div style="height:4px"></div>
+              <h1 class="title">DIVINE, will you be my Valentine?</h1>
+              <p class="sub">Please choose wisely 😌</p>
+
+              <div class="controls" aria-label="Choices">
+                <button class="btn btnYes" id="yesBtn" type="button">YES</button>
+                <!-- placeholder for layout symmetry; NO lives in teleportStage below -->
+                <div aria-hidden="true"></div>
+              </div>
+
+              <div class="teleportStage" id="teleportStage" aria-label="No area">
+                <button class="btn btnNo" id="noBtn" type="button">NO</button>
+              </div>
+
+              <div class="attempts" id="attempts">Attempts: 0</div>
+              <div class="hint">(Try pressing NO. If you can.)</div>
+            </div>
+          </div>
+
+          <!-- Screen 2: Yes celebration (back face of flip) -->
+          <div class="card backFace" id="yesCard" aria-label="Celebration">
+            <div class="confetti" id="confetti" aria-hidden="true"></div>
+            <div class="cardInner celebrate">
+              <div></div>
+              <div class="heartBuddyWrap" aria-hidden="true">
+                <div class="heartBuddy" id="heartBuddy">
+                  <div class="heartCore"></div>
+                  <div class="heartShine"></div>
+                  <div class="faceDots" id="faceDots">
+                    <div class="eye left"></div>
+                    <div class="eye right" id="rightEye"></div>
+                  </div>
+                  <div class="cheeks">
+                    <div class="cheek"></div>
+                    <div class="cheek"></div>
+                  </div>
+                  <div class="mouth"></div>
+                </div>
+              </div>
+              <p class="loveLine">I love You :D</p>
+              <div class="ctaRow">
+                <button class="btn btnYes" id="myHeartBtn" type="button" style="min-width: 180px;">My heart</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 3: Letter -->
+      <section class="screen" id="screen-letter" aria-label="Love letter">
+        <div class="card">
+          <div class="cardInner letter">
+            <div class="letterHeader">
+              <h2 class="letterTitle">For you, Divine</h2>
+              <div class="pill" aria-hidden="true">❤ warm words</div>
+            </div>
+
+            <div class="scrollArea" id="scrollArea" role="region" aria-label="Letter content">
+              <div class="paper" aria-hidden="true"></div>
+              <p class="letterBody">
+                Divine,
+                <br><br>
+                I do not say this lightly. You have a way of stepping into my day and making everything feel softer. When life gets loud and my mind is running too fast, you calm it down without even trying. I love her, she makes me have peace. That is the simplest truth I know.
+                <br><br>
+                There is something safe about you. Not in a dramatic way, just real. The kind of safety that makes me breathe deeper and stop pretending I am fine when I am tired. She is where I come to rest. With you, I feel like I can put down the weight I carry and just be.
+                <br><br>
+                I keep noticing the small things. The way you look when you are thinking. The way your laugh changes the whole room. The way you make ordinary moments feel like they matter. It is not just love that I feel, it is gratitude. She is my world. I love her so much.
+                <br><br>
+                And yes, I am going to say it because it is true: I love her more than her love for food. That is my little joke, but it is also my promise that I am here with you for real, in the serious parts and the silly parts.
+                <br><br>
+                I want future moments with you that feel simple and honest. Quiet mornings, late-night talks, little trips, random errands that turn into memories. I want to keep choosing you, not just on the easy days, but on the days when life feels heavy. I want to be the place you can lean on too.
+                <br><br>
+                Thank you for being you. Thank you for making life feel quieter, safer, and more beautiful. I am proud of you, and I am proud to love you.
+                <br><br>
+                <span class="sig">— Yours, always.</span>
+              </p>
+            </div>
+
+            <div class="hint">(Scroll if you need to. Take your time.)</div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <script>
+  (function(){
+    "use strict";
+
+    const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+    function rand(min, max){ return min + Math.random() * (max - min); }
+
+    // --- Tiny haptics-ish visual helper
+    function addRipple(el, clientX, clientY){
+      const r = document.createElement('span');
+      r.className = 'ripple';
+      const rect = el.getBoundingClientRect();
+      r.style.setProperty('--x', (clientX - rect.left) + 'px');
+      r.style.setProperty('--y', (clientY - rect.top) + 'px');
+      el.appendChild(r);
+      r.addEventListener('animationend', ()=> r.remove(), {once:true});
+    }
+
+    function safeAreaInsets(){
+      // We can't read env() values in JS reliably across browsers.
+      // Instead, approximate with CSS padding already applied to .app.
+      const app = document.getElementById('app');
+      const cs = getComputedStyle(app);
+      const padT = parseFloat(cs.paddingTop) || 0;
+      const padR = parseFloat(cs.paddingRight) || 0;
+      const padB = parseFloat(cs.paddingBottom) || 0;
+      const padL = parseFloat(cs.paddingLeft) || 0;
+      return {padT, padR, padB, padL};
+    }
+
+    // --- State machine
+    const State = {
+      ASK: 'ask',
+      YES: 'yes',
+      LETTER: 'letter'
+    };
+
+    let current = State.ASK;
+
+    function setScreen(next){
+      if(next === current) return;
+      const ask = document.getElementById('screen-ask');
+      const letter = document.getElementById('screen-letter');
+
+      if(next === State.LETTER){
+        // slide/fade transition
+        ask.classList.remove('active');
+        ask.classList.add('exitLeft');
+        letter.classList.add('enterRight');
+        letter.classList.add('active');
+        // trigger layout then remove enter class
+        requestAnimationFrame(()=>{
+          letter.classList.remove('enterRight');
+        });
+        // cleanup ask classes later
+        setTimeout(()=>{
+          ask.classList.remove('exitLeft');
+        }, 650);
+      }
+      current = next;
+    }
+
+    // --- Stars canvas (lightweight)
+    function initStars(){
+      const canvas = document.getElementById('stars');
+      const ctx = canvas.getContext('2d', {alpha:true});
+      let w=0,h=0,dpr=1;
+      const stars = [];
+      const maxStars = reduceMotion ? 48 : 80;
+
+      function resize(){
+        const rect = canvas.getBoundingClientRect();
+        dpr = Math.max(1, Math.min(2.5, window.devicePixelRatio || 1));
+        w = Math.floor(rect.width * dpr);
+        h = Math.floor(rect.height * dpr);
+        canvas.width = w;
+        canvas.height = h;
+        canvas.style.width = rect.width + 'px';
+        canvas.style.height = rect.height + 'px';
+
+        stars.length = 0;
+        const count = clamp(Math.floor((w*h) / (reduceMotion ? 60000 : 42000)), 40, maxStars);
+        for(let i=0;i<count;i++){
+          stars.push({
+            x: Math.random()*w,
+            y: Math.random()*h,
+            r: rand(.6, 1.6)*dpr,
+            a: rand(.15, .75),
+            tw: rand(.003, .012),
+            sp: rand(.02, .08)*dpr,
+            ph: Math.random()*Math.PI*2
+          });
+        }
+      }
+
+      let t0 = performance.now();
+      function tick(t){
+        const dt = Math.min(32, t - t0);
+        t0 = t;
+        ctx.clearRect(0,0,w,h);
+
+        // subtle vignette
+        const g = ctx.createRadialGradient(w*0.5, h*0.35, 0, w*0.5, h*0.35, Math.max(w,h)*0.75);
+        g.addColorStop(0, 'rgba(255,255,255,0.02)');
+        g.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = g;
+        ctx.fillRect(0,0,w,h);
+
+        for(let i=0;i<stars.length;i++){
+          const s = stars[i];
+          if(!reduceMotion){
+            s.y += s.sp * (dt/16);
+            s.x += Math.sin((t*0.0003)+s.ph) * 0.12 * (dt/16);
+            if(s.y > h + 10) s.y = -10;
+            if(s.x < -10) s.x = w + 10;
+            if(s.x > w + 10) s.x = -10;
+          }
+          const tw = reduceMotion ? 0 : (Math.sin(t*s.tw + s.ph) * 0.25);
+          const alpha = clamp(s.a + tw, 0.05, 0.9);
+          ctx.beginPath();
+          ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+          ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+          ctx.fill();
+        }
+
+        requestAnimationFrame(tick);
+      }
+
+      resize();
+      window.addEventListener('resize', resize, {passive:true});
+      requestAnimationFrame(tick);
+    }
+
+    // --- Confetti hearts (DOM, limited)
+    function spawnHearts(container, originEl, durationMs){
+      const start = performance.now();
+      const max = reduceMotion ? 26 : 46;
+      let active = 0;
+      let rafId = 0;
+      const hearts = [];
+
+      const contRect = container.getBoundingClientRect();
+      const oRect = originEl.getBoundingClientRect();
+
+      const ox = (oRect.left + oRect.width/2) - contRect.left;
+      const oy = (oRect.top + oRect.height*0.45) - contRect.top;
+
+      function makeHeart(){
+        const el = document.createElement('div');
+        el.className = 'confettiHeart';
+        const inner = document.createElement('span');
+        el.appendChild(inner);
+        container.appendChild(el);
+
+        const ang = rand(-Math.PI*0.7, -Math.PI*0.3);
+        const sp = rand(1.4, 3.2);
+        const drift = rand(-0.6, 0.6);
+
+        const hobj = {
+          el,
+          x: ox + rand(-10, 10),
+          y: oy + rand(-6, 6),
+          vx: Math.cos(ang) * sp + drift,
+          vy: Math.sin(ang) * sp,
+          rot: rand(-40, 40),
+          vr: rand(-2.5, 2.5),
+          life: rand(900, 1550),
+          born: performance.now(),
+          scale: rand(.85, 1.25)
+        };
+        hearts.push(hobj);
+        active++;
+      }
+
+      function step(now){
+        const elapsed = now - start;
+        if(elapsed < durationMs && active < max){
+          // bursty rate
+          const toSpawn = reduceMotion ? 1 : (Math.random() < 0.75 ? 2 : 1);
+          for(let i=0;i<toSpawn;i++) if(active < max) makeHeart();
+        }
+
+        for(let i=hearts.length-1;i>=0;i--){
+          const h = hearts[i];
+          const age = now - h.born;
+          const p = age / h.life;
+          if(p >= 1){
+            h.el.remove();
+            hearts.splice(i,1);
+            active--;
+            continue;
+          }
+          // physics
+          h.vy += 0.035;
+          h.x += h.vx;
+          h.y += h.vy;
+          h.rot += h.vr;
+          const fade = 1 - Math.pow(p, 1.4);
+          const s = h.scale * (0.92 + Math.sin((p*8)) * 0.06);
+          h.el.style.opacity = String(fade);
+          h.el.style.transform = `translate3d(${h.x}px, ${h.y}px, 0) rotate(${h.rot}deg) scale(${s})`;
+        }
+
+        // stop when done
+        if(elapsed < durationMs || hearts.length){
+          rafId = requestAnimationFrame(step);
+        } else {
+          cancelAnimationFrame(rafId);
+        }
+      }
+
+      rafId = requestAnimationFrame(step);
+      // cleanup if user leaves screen quickly
+      return ()=>{
+        cancelAnimationFrame(rafId);
+        hearts.forEach(h=> h.el.remove());
+        hearts.length = 0;
+      };
+    }
+
+    // --- NO teleport logic
+    function rectsOverlap(a,b){
+      return !(a.right < b.left || a.left > b.right || a.bottom < b.top || a.top > b.bottom);
+    }
+
+    function initNoTeleport(){
+      const stage = document.getElementById('teleportStage');
+      const noBtn = document.getElementById('noBtn');
+      const yesBtn = document.getElementById('yesBtn');
+      const attemptsEl = document.getElementById('attempts');
+      const card = document.getElementById('askCard');
+
+      let attempts = 0;
+      let last = {x:0, y:0};
+
+      function measure(){
+        const sRect = stage.getBoundingClientRect();
+        const nRect = noBtn.getBoundingClientRect();
+        const yRect = yesBtn.getBoundingClientRect();
+        return {sRect, nRect, yRect};
+      }
+
+      function pickPosition(){
+        const {sRect, nRect, yRect} = measure();
+        const safe = safeAreaInsets();
+
+        // Stage internal padding
+        const pad = 10;
+        const padEdge = 8;
+
+        const maxX = Math.max(0, sRect.width - nRect.width - pad*2);
+        const maxY = Math.max(0, sRect.height - nRect.height - pad*2);
+
+        // Expand stage vertically if too tight
+        const tries = 24;
+
+        // Exclusion zone near YES button (convert to stage coords)
+        const yesBox = {
+          left: yRect.left - sRect.left - 6,
+          top: yRect.top - sRect.top - 6,
+          right: yRect.right - sRect.left + 6,
+          bottom: yRect.bottom - sRect.top + 6
+        };
+
+        // Prefer top/bottom halves and away from last
+        for(let i=0;i<tries;i++){
+          let x = pad + rand(0, maxX);
+          let y = pad + rand(0, maxY);
+
+          // keep away from edges a bit
+          x = clamp(x, padEdge, sRect.width - nRect.width - padEdge);
+          y = clamp(y, padEdge, sRect.height - nRect.height - padEdge);
+
+          // avoid being too close to last
+          const dx = x - last.x;
+          const dy = y - last.y;
+          if((dx*dx + dy*dy) < 1200) continue;
+
+          const cand = {left:x, top:y, right:x+nRect.width, bottom:y+nRect.height};
+          if(rectsOverlap(cand, yesBox)) continue;
+
+          // also avoid being under notch by relying on app padding; stage is inside
+          // but still keep top clear a bit
+          const notchBuffer = Math.max(0, safe.padT - 10);
+          if((sRect.top + y) < notchBuffer) continue;
+
+          return {x,y};
+        }
+
+        // fallback (bottom-right-ish)
+        return {
+          x: clamp(sRect.width - nRect.width - padEdge, 0, sRect.width),
+          y: clamp(padEdge, 0, sRect.height)
+        };
+      }
+
+      function teleport(clientX, clientY){
+        attempts++;
+        attemptsEl.textContent = 'Attempts: ' + attempts;
+
+        // pop effect inside stage
+        addRipple(stage, clientX, clientY);
+
+        // card shake
+        card.classList.remove('shake');
+        // force reflow
+        void card.offsetWidth;
+        card.classList.add('shake');
+
+        const {x,y} = pickPosition();
+        last = {x,y};
+
+        // Use transform for smooth 60fps
+        noBtn.style.setProperty('--tx', x + 'px');
+        noBtn.style.setProperty('--ty', y + 'px');
+
+        // Fast spring-like transition
+        noBtn.classList.remove('wobble');
+        void noBtn.offsetWidth;
+        noBtn.classList.add('wobble');
+        noBtn.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+      }
+
+      // Initial placement (slightly right)
+      requestAnimationFrame(()=>{
+        const pos = pickPosition();
+        last = pos;
+        noBtn.style.transform = `translate3d(${pos.x}px, ${pos.y}px, 0)`;
+      });
+
+      // Pointer handler
+      noBtn.addEventListener('pointerdown', (e)=>{
+        e.preventDefault();
+        e.stopPropagation();
+        teleport(e.clientX, e.clientY);
+      }, {passive:false});
+
+      // In case of keyboard activation
+      noBtn.addEventListener('click', (e)=>{
+        if(e.detail === 0){
+          const rect = noBtn.getBoundingClientRect();
+          teleport(rect.left + rect.width/2, rect.top + rect.height/2);
+        }
+        e.preventDefault();
+        e.stopPropagation();
+      });
+
+      // Keep it in bounds on resize
+      window.addEventListener('resize', ()=>{
+        requestAnimationFrame(()=>{
+          const {sRect, nRect} = measure();
+          const x = clamp(last.x, 8, Math.max(8, sRect.width - nRect.width - 8));
+          const y = clamp(last.y, 8, Math.max(8, sRect.height - nRect.height - 8));
+          last = {x,y};
+          noBtn.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+        });
+      }, {passive:true});
+    }
+
+    function initYesFlow(){
+      const yesBtn = document.getElementById('yesBtn');
+      const myHeartBtn = document.getElementById('myHeartBtn');
+      const flipWrap = document.getElementById('flipWrap');
+      const heartBuddy = document.getElementById('heartBuddy');
+      const faceDots = document.getElementById('faceDots');
+      const confetti = document.getElementById('confetti');
+
+      let cleanupHearts = null;
+      let winkTimeout = 0;
+
+      function wink(){
+        faceDots.classList.add('wink');
+        setTimeout(()=> faceDots.classList.remove('wink'), 340);
+      }
+
+      function startCelebration(){
+        current = State.YES;
+        // flip
+        flipWrap.classList.add('flipping');
+
+        // buddy bounce loop (light)
+        if(!reduceMotion){
+          setTimeout(()=> heartBuddy.classList.add('buddyBounce'), 900);
+        }
+
+        // confetti hearts for 3s
+        const duration = reduceMotion ? 1400 : 3000;
+        if(cleanupHearts) cleanupHearts();
+        cleanupHearts = spawnHearts(confetti, heartBuddy, duration);
+
+        // wink moment
+        clearTimeout(winkTimeout);
+        winkTimeout = setTimeout(wink, reduceMotion ? 420 : 860);
+      }
+
+      yesBtn.addEventListener('pointerdown', (e)=>{
+        // micro press on pointerdown, actual action on click
+        // (Safari can sometimes delay click; pointerdown feels snappy)
+      }, {passive:true});
+
+      yesBtn.addEventListener('click', ()=>{
+        if(current !== State.ASK) return;
+        startCelebration();
+      });
+
+      myHeartBtn.addEventListener('click', ()=>{
+        setScreen(State.LETTER);
+        // stop confetti to save battery
+        if(cleanupHearts) cleanupHearts();
+      });
+
+      // Allow double-tap on heart buddy to wink again
+      heartBuddy.addEventListener('pointerdown', (e)=>{
+        e.preventDefault();
+        wink();
+      }, {passive:false});
+    }
+
+    document.addEventListener('DOMContentLoaded', ()=>{
+      initStars();
+      initNoTeleport();
+      initYesFlow();
+
+      // Prevent iOS rubber-band scroll of body; keep scroll only inside scrollArea
+      document.body.addEventListener('touchmove', (e)=>{
+        const target = e.target;
+        const scrollArea = document.getElementById('scrollArea');
+        if(scrollArea && scrollArea.contains(target)) return;
+        e.preventDefault();
+      }, {passive:false});
+    });
+
+  })();
+  </script>
+</body>
+</html>
